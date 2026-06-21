@@ -3,11 +3,29 @@ const doorFrame   = document.getElementById('doorFrame');
 const doorScreen  = document.getElementById('door-screen');
 const openBtn     = document.getElementById('openDoorBtn');
 
-let doorsOpened = false;
+// ===== MUSIC PLAYER =====
+const musicPlayer = document.getElementById('musicPlayer');
+const musicToggle = document.getElementById('musicToggle');
+const bgMusic     = document.getElementById('bgMusic');
+const iconPlay    = musicToggle.querySelector('.icon-play');
+const iconPause   = musicToggle.querySelector('.icon-pause');
 
-function openDoors(){
-  if(doorsOpened) return;
+let doorsOpened = false;
+let isPlaying = false;
+
+function openDoors() {
+  if (doorsOpened) return;
   doorsOpened = true;
+
+  // Start music automatically when doors open
+  bgMusic.play()
+    .then(() => {
+      isPlaying = true;
+      updateMusicUI();
+    })
+    .catch(() => {
+      console.warn('Add your music file at audio/papa-meri-jaan.mp3 to enable playback.');
+    });
 
   doorFrame.classList.add('opened');
   openBtn.classList.add('fired');
@@ -30,51 +48,61 @@ const memories = document.querySelectorAll('.memory');
 
 const observer = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
-    if(entry.isIntersecting){
-      // restart burst animation each time it's freshly triggered
+    if (entry.isIntersecting) {
       entry.target.classList.add('in-view');
-      observer.unobserve(entry.target); // pop once, like a balloon - doesn't need to repeat
+      observer.unobserve(entry.target);
     }
   });
 }, { threshold: 0.28 });
 
 memories.forEach(m => observer.observe(m));
 
-// ===== MUSIC PLAYER =====
-const musicPlayer = document.getElementById('musicPlayer');
-const musicToggle = document.getElementById('musicToggle');
-const bgMusic      = document.getElementById('bgMusic');
-const iconPlay     = musicToggle.querySelector('.icon-play');
-const iconPause    = musicToggle.querySelector('.icon-pause');
-
-let isPlaying = false;
-
+// ===== MUSIC TOGGLE BUTTON =====
 musicToggle.addEventListener('click', () => {
-  if(!isPlaying){
-    bgMusic.play().catch(() => {
-      // Audio file not added yet at audio/papa-meri-jaan.mp3
-      console.warn('Add your music file at audio/papa-meri-jaan.mp3 to enable playback.');
-    });
-    isPlaying = true;
+  if (!isPlaying) {
+    bgMusic.play()
+      .then(() => {
+        isPlaying = true;
+        updateMusicUI();
+      })
+      .catch(() => {
+        console.warn('Could not play audio.');
+      });
   } else {
     bgMusic.pause();
     isPlaying = false;
+    updateMusicUI();
   }
-  updateMusicUI();
 });
 
-function updateMusicUI(){
+function updateMusicUI() {
   musicPlayer.classList.toggle('playing', isPlaying);
-  iconPlay.style.display  = isPlaying ? 'none' : 'block';
+
+  iconPlay.style.display = isPlaying ? 'none' : 'block';
   iconPause.style.display = isPlaying ? 'block' : 'none';
-  musicToggle.setAttribute('aria-label', isPlaying ? 'Pause background music' : 'Play background music');
-  musicToggle.setAttribute('title', isPlaying ? 'Pause music' : 'Play music');
+
+  musicToggle.setAttribute(
+    'aria-label',
+    isPlaying ? 'Pause background music' : 'Play background music'
+  );
+
+  musicToggle.setAttribute(
+    'title',
+    isPlaying ? 'Pause music' : 'Play music'
+  );
 }
 
-// if playback ends unexpectedly (e.g. file missing), reset icon state
+// Keep UI synced if music pauses
 bgMusic.addEventListener('pause', () => {
-  if(isPlaying && bgMusic.currentTime === 0){
+  if (isPlaying) {
     isPlaying = false;
+    updateMusicUI();
+  }
+});
+
+bgMusic.addEventListener('play', () => {
+  if (!isPlaying) {
+    isPlaying = true;
     updateMusicUI();
   }
 });
